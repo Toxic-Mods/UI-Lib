@@ -1,0 +1,484 @@
+local library = {
+	windowCount = 0,
+	flags = {}
+}
+
+local services = {}
+
+setmetatable(services, {
+	__index = function(_, s)
+		return game:GetService(s)
+	end,
+	__newindex = function(tbl, idx)
+		tbl[idx] = nil
+		return
+	end
+})
+
+local oldf
+local mouse = services.Players.LocalPlayer:GetMouse()
+
+function Drag(frame, hold)
+	if oldf then
+		oldf.ZIndex = -2
+	end
+	oldf = frame
+	oldf.ZIndex = -1
+	if not hold then
+		hold = frame
+	end
+
+	local dragging
+	local dragInput
+	local dragStart
+	local startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+
+	hold.InputBegan:Connect(
+		function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = true
+				dragStart = input.Position
+				startPos = frame.Position
+
+				input.Changed:Connect(
+					function()
+						if input.UserInputState == Enum.UserInputState.End then
+							dragging = false
+						end
+					end
+				)
+			end
+		end
+	)
+
+	frame.InputChanged:Connect(
+		function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				dragInput = input
+			end
+		end
+	)
+
+	game:service("UserInputService").InputChanged:Connect(
+	function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end
+	)
+end
+
+function ClickEffect(obj)
+	spawn(function()
+		if obj.ClipsDescendants ~= true then
+			obj.ClipsDescendants = true
+		end
+
+		local Ripple = Instance.new("ImageLabel")
+
+		Ripple.Name = "Ripple"
+		Ripple.Parent = obj
+		Ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Ripple.BackgroundTransparency = 1.000
+		Ripple.ZIndex = 8
+		Ripple.Image = "rbxassetid://2708891598"
+		Ripple.ImageTransparency = 0.800
+		Ripple.ScaleType = Enum.ScaleType.Fit
+		Ripple.ImageColor3 = Color3.fromRGB(131, 132, 255)
+
+		Ripple.Position = UDim2.new((mouse.X - Ripple.AbsolutePosition.X) / obj.AbsoluteSize.X, 0, (mouse.Y - Ripple.AbsolutePosition.Y) / obj.AbsoluteSize.Y, 0)
+		services.TweenService:Create(Ripple, TweenInfo.new(1), {Position = UDim2.new(-5.5, 0, -5.5, 0), Size = UDim2.new(12, 0, 12, 0)}):Play()
+		wait(0.25)
+		services.TweenService:Create(Ripple, TweenInfo.new(.5), {ImageTransparency = 1}):Play()
+		repeat wait() until Ripple.ImageTransparency == 1
+		Ripple:Destroy()
+	end)
+end
+
+local window = Instance.new("ScreenGui")
+
+window.Name = services.HttpService:GenerateGUID()
+window.Parent = services.RunService:IsStudio() and services.Players.LocalPlayer:WaitForChild('PlayerGui') or services.CoreGui
+
+services.UserInputService.InputBegan:Connect(function(inp, gpe)
+	if inp.KeyCode == Enum.KeyCode.LeftShift and not gpe then
+		window.Enabled = not window.Enabled
+	end
+end)
+
+function library:Window(winTxt)
+	local winOpen = false
+	library.windowCount = library.windowCount + 1
+
+	local Top = Instance.new("Frame")
+	local WindowLine = Instance.new("Frame")
+	local WindowLineGradient = Instance.new("UIGradient")
+	local Header = Instance.new("TextLabel")
+	local WindowToggle = Instance.new("TextButton")
+	local WindowToggleImg = Instance.new("ImageLabel")
+	local Bottom = Instance.new("Frame")
+	local BottomLayout = Instance.new("UIListLayout")
+	local PaddingThing = Instance.new("Frame")
+
+	Top.Name = "Top"
+	Top.Parent = window
+	Top.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+	Top.BorderSizePixel = 0
+	Top.Position = UDim2.new(0, 25, 0, -30 + (36 * library.windowCount) + (6 * library.windowCount))
+	Top.Size = UDim2.new(0, 212, 0, 36)
+	Drag(Top)
+
+	WindowLine.Name = "WindowLine"
+	WindowLine.Parent = Top
+	WindowLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	WindowLine.BorderSizePixel = 0
+	WindowLine.Position = UDim2.new(0, 0, 0, 34)
+	WindowLine.Size = UDim2.new(0, 212, 0, 2)
+
+	WindowLineGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(43, 43, 43)), ColorSequenceKeypoint.new(0.20, Color3.fromRGB(43, 43, 43)), ColorSequenceKeypoint.new(0.50, Color3.fromRGB(131, 132, 255)), ColorSequenceKeypoint.new(0.80, Color3.fromRGB(43, 43, 43)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(43, 43, 43))}
+	WindowLineGradient.Name = "WindowLineGradient"
+	WindowLineGradient.Parent = WindowLine
+
+	Header.Name = "Header"
+	Header.Parent = Top
+	Header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Header.BackgroundTransparency = 1.000
+	Header.BorderSizePixel = 0
+	Header.Size = UDim2.new(0, 54, 0, 34)
+	Header.Font = Enum.Font.GothamSemibold
+	Header.Text = "   " .. tostring(winTxt) or ""
+	Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Header.TextSize = 14.000
+	Header.TextXAlignment = Enum.TextXAlignment.Left
+
+	WindowToggle.Name = "WindowToggle"
+	WindowToggle.Parent = Top
+	WindowToggle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	WindowToggle.BackgroundTransparency = 1.000
+	WindowToggle.BorderSizePixel = 0
+	WindowToggle.Position = UDim2.new(0.835270762, 0, 0, 0)
+	WindowToggle.Size = UDim2.new(0, 34, 0, 34)
+	WindowToggle.Font = Enum.Font.SourceSans
+	WindowToggle.Text = ""
+	WindowToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+	WindowToggle.TextSize = 14.000
+
+	WindowToggleImg.Name = "WindowToggleImg"
+	WindowToggleImg.Parent = WindowToggle
+	WindowToggleImg.AnchorPoint = Vector2.new(0.5, 0.5)
+	WindowToggleImg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	WindowToggleImg.BackgroundTransparency = 1.000
+	WindowToggleImg.BorderSizePixel = 0
+	WindowToggleImg.Position = UDim2.new(0.5, 0, 0.5, 0)
+	WindowToggleImg.Size = UDim2.new(0, 18, 0, 18)
+	WindowToggleImg.Image = "rbxassetid://3926305904"
+	WindowToggleImg.ImageRectOffset = Vector2.new(524, 764)
+	WindowToggleImg.ImageRectSize = Vector2.new(36, 36)
+	WindowToggleImg.Rotation = 180
+
+	Bottom.Name = "Bottom"
+	Bottom.Parent = Top
+	Bottom.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+	Bottom.BorderSizePixel = 0
+	Bottom.ClipsDescendants = true
+	Bottom.Position = UDim2.new(0, 0, 1, 0)
+	Bottom.Size = UDim2.new(0, 212, 0, 0)
+
+	BottomLayout.Name = "BottomLayout"
+	BottomLayout.Parent = Bottom
+	BottomLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	BottomLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	BottomLayout.Padding = UDim.new(0, 4)
+
+	PaddingThing.Name = "PaddingThing"
+	PaddingThing.Parent = Bottom
+	PaddingThing.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	PaddingThing.BorderSizePixel = 0
+	PaddingThing.Position = UDim2.new(0.263033181, 0, 0, 0)
+	PaddingThing.Size = UDim2.new(0, 100, 0, 0)
+	local toggling = false
+	local function toggleTab()
+		if toggling then return end
+		winOpen = not winOpen
+		local toggling = true
+		services.TweenService:Create(Bottom, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			Size = UDim2.new(0, 212, 0, winOpen and BottomLayout.AbsoluteContentSize.Y + 4 or 0)
+		}):Play()
+		services.TweenService:Create(WindowToggleImg, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			Rotation = winOpen and 0 or 180
+		}):Play()
+		wait(.25)
+		toggling = false
+	end
+
+	local function resize()
+		if toggling or not winOpen then return end
+		Bottom.Size.Y.Offset = BottomLayout.AbsoluteContentSize.Y + 4
+	end
+
+	BottomLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(resize)
+	WindowToggle.MouseButton1Click:Connect(toggleTab)
+
+	local objs = {}
+
+	function objs:Label(txt)
+		local Label = Instance.new("TextButton")
+
+		Label.Name = "Label"
+		Label.Parent = Bottom
+		Label.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+		Label.BorderSizePixel = 0
+		Label.Position = UDim2.new(0.0212264154, 0, 0.71676302, 0)
+		Label.Size = UDim2.new(0, 203, 0, 26)
+		Label.AutoButtonColor = false
+		Label.Font = Enum.Font.GothamSemibold
+		Label.Text = tostring(txt) or ""
+		Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		Label.TextSize = 14.000
+		return Label
+	end
+
+	function objs:Button(txt, callback)
+		local ButtonObj = Instance.new("Frame")
+		local Button = Instance.new("TextButton")
+		local callback = callback or function() end
+
+		ButtonObj.Name = "ButtonObj"
+		ButtonObj.Parent = Bottom
+		ButtonObj.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+		ButtonObj.BorderSizePixel = 0
+		ButtonObj.Position = UDim2.new(0, 0, 0.0172413792, 0)
+		ButtonObj.Size = UDim2.new(0, 203, 0, 36)
+
+		Button.Name = "Button"
+		Button.Parent = ButtonObj
+		Button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Button.BackgroundTransparency = 1.000
+		Button.BorderSizePixel = 0
+		Button.Size = UDim2.new(0, 203, 0, 36)
+		Button.Font = Enum.Font.Gotham
+		Button.Text = "  " .. tostring(txt) or ""
+		Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		Button.TextSize = 14.000
+		Button.TextXAlignment = Enum.TextXAlignment.Left
+
+		Button.MouseEnter:Connect(function()
+			services.TweenService:Create(ButtonObj, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+			}):Play()
+		end)
+
+		Button.MouseLeave:Connect(function()
+			services.TweenService:Create(ButtonObj, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+			}):Play()
+		end)
+
+		Button.MouseButton1Click:Connect(function()
+			spawn(function()
+				ClickEffect(Button)
+			end)
+			callback()
+		end)
+	end
+
+	function objs:Toggle(toggleTxt, toggleFlag, default, callback, location)
+		local location = location or library.flags
+		local toggleFlag = toggleFlag or services.HttpService:GenerateGUID()
+		local default = default or false
+		local callback = callback or function() end
+
+		location[toggleFlag] = default
+
+		local ToggleObj = Instance.new("Frame")
+		local ToggleText = Instance.new("TextButton")
+		local ToggleStatus = Instance.new("Frame")
+		local ToggleStatusRound = Instance.new("UICorner")
+
+		ToggleObj.Name = "ToggleObj"
+		ToggleObj.Parent = Bottom
+		ToggleObj.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+		ToggleObj.BorderSizePixel = 0
+		ToggleObj.Position = UDim2.new(0, 0, 0.0172413792, 0)
+		ToggleObj.Size = UDim2.new(0, 203, 0, 36)
+
+		ToggleText.Name = "ToggleText"
+		ToggleText.Parent = ToggleObj
+		ToggleText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		ToggleText.BackgroundTransparency = 1.000
+		ToggleText.BorderSizePixel = 0
+		ToggleText.Size = UDim2.new(0, 203, 0, 36)
+		ToggleText.Font = Enum.Font.Gotham
+		ToggleText.Text = "  " .. tostring(toggleTxt) or ""
+		ToggleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		ToggleText.TextSize = 14.000
+		ToggleText.TextXAlignment = Enum.TextXAlignment.Left
+
+		ToggleStatus.Name = "ToggleStatus"
+		ToggleStatus.Parent = ToggleObj
+		ToggleStatus.AnchorPoint = Vector2.new(0, 0.5)
+		ToggleStatus.BackgroundColor3 = default and Color3.fromRGB(14, 255, 110) or Color3.fromRGB(255, 44, 44)
+		ToggleStatus.BorderSizePixel = 0
+		ToggleStatus.Position = UDim2.new(0.847443342, 0, 0.5, 0)
+		ToggleStatus.Size = UDim2.new(0, 24, 0, 24)
+
+		ToggleStatusRound.CornerRadius = UDim.new(0, 4)
+		ToggleStatusRound.Name = "ToggleStatusRound"
+		ToggleStatusRound.Parent = ToggleStatus
+
+		if default then
+			callback(true)
+		end
+
+		ToggleText.MouseEnter:Connect(function()
+			services.TweenService:Create(ToggleObj, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+			}):Play()
+		end)
+
+		ToggleText.MouseLeave:Connect(function()
+			services.TweenService:Create(ToggleObj, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+			}):Play()
+		end)
+
+		ToggleText.MouseButton1Click:Connect(function()
+			location[toggleFlag] = not location[toggleFlag]
+			spawn(function()
+				services.TweenService:Create(ToggleStatus, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					BackgroundColor3 = location[toggleFlag] and Color3.fromRGB(14, 255, 110) or Color3.fromRGB(255, 44, 44)
+				}):Play()
+			end)
+			spawn(function()
+				ClickEffect(ToggleText)
+			end)
+			callback(location[toggleFlag])
+		end)
+
+	end
+
+	function objs:Slider(sliderText, sliderFlag, sliderMin, sliderMax, callback, default, location)
+		local min = sliderMin or 0
+		local max = sliderMax or 100
+		local flag = sliderFlag or services.HttpService:GenerateGUID()
+		local callback = callback or function() end
+		local location = location or library.flags
+		local dragging = false
+
+		location[flag] = default or min		
+
+		local SliderObj = Instance.new("Frame")
+		local SliderText = Instance.new("TextButton")
+		local SliderBack = Instance.new("Frame")
+		local SliderBackRound = Instance.new("UICorner")
+		local SliderPart = Instance.new("Frame")
+		local SliderPartRound = Instance.new("UICorner")
+		local SliderValue = Instance.new("TextLabel")
+
+		SliderObj.Name = "SliderObj"
+		SliderObj.Parent = Bottom
+		SliderObj.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+		SliderObj.BorderSizePixel = 0
+		SliderObj.Position = UDim2.new(0, 0, 0.0172413792, 0)
+		SliderObj.Size = UDim2.new(0, 203, 0, 36)
+
+		SliderText.Name = "SliderText"
+		SliderText.Parent = SliderObj
+		SliderText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		SliderText.BackgroundTransparency = 1.000
+		SliderText.BorderSizePixel = 0
+		SliderText.Size = UDim2.new(0, 203, 0, 36)
+		SliderText.Font = Enum.Font.Gotham
+		SliderText.Text = "  " .. tostring(sliderText) or ""
+		SliderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		SliderText.TextSize = 14.000
+		SliderText.TextXAlignment = Enum.TextXAlignment.Left
+
+		SliderBack.Name = "SliderBack"
+		SliderBack.Parent = SliderObj
+		SliderBack.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+		SliderBack.BorderSizePixel = 0
+		SliderBack.Position = UDim2.new(0.57099998, 0, 0.680000007, 0)
+		SliderBack.Size = UDim2.new(0, 80, 0, 7)
+
+		SliderBackRound.CornerRadius = UDim.new(0, 4)
+		SliderBackRound.Name = "SliderBackRound"
+		SliderBackRound.Parent = SliderBack
+
+		SliderPart.Name = "SliderPart"
+		SliderPart.Parent = SliderBack
+		SliderPart.BackgroundColor3 = Color3.fromRGB(131, 133, 255)
+		SliderPart.BorderSizePixel = 0
+		SliderPart.Size = UDim2.new((default or 0) / max, 0, 1, 0)
+
+		SliderPartRound.CornerRadius = UDim.new(0, 4)
+		SliderPartRound.Name = "SliderPartRound"
+		SliderPartRound.Parent = SliderPart
+
+		SliderValue.Name = "SliderValue"
+		SliderValue.Parent = SliderObj
+		SliderValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		SliderValue.BackgroundTransparency = 1.000
+		SliderValue.BorderSizePixel = 0
+		SliderValue.Position = UDim2.new(0.571428597, 0, 0.166666672, 0)
+		SliderValue.Size = UDim2.new(0, 80, 0, 16)
+		SliderValue.Font = Enum.Font.Code
+		SliderValue.Text = default or min
+		SliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+		SliderValue.TextSize = 14.000
+
+		if default and default ~= min then
+			callback(default)
+		end
+
+		local function slide(input)
+			local pos = UDim2.new(math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1), 0, 1, 0);
+			SliderPart:TweenSize(pos, Enum.EasingDirection.InOut, Enum.EasingStyle.Linear, 0.05, true);
+			local value = math.floor(((pos.X.Scale * max) / max) * (max - min) + min);
+			SliderValue.Text = tostring(value);
+			location[flag] = value
+			callback(value);
+		end;
+
+		SliderText.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				spawn(function()
+					services.TweenService:Create(SliderPart, TweenInfo.new(0.15), {
+						BackgroundColor3 = Color3.fromRGB(255,255,255)
+					}):Play()
+				end)
+				slide(input);
+				dragging = true;
+			end;
+		end);			
+
+		SliderText.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				spawn(function()
+					services.TweenService:Create(SliderPart, TweenInfo.new(0.15), {
+						BackgroundColor3 = Color3.fromRGB(131, 133, 255)
+					}):Play()
+				end)
+				dragging = false;
+			end;
+		end);
+		services.UserInputService.InputChanged:Connect(function(input)
+			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+				slide(input);
+			end;
+		end);
+	end
+	return objs
+end
+
+return library
